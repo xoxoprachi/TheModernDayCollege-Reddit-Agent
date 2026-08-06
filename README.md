@@ -59,7 +59,7 @@ That's it — the workflow in `.github/workflows/daily.yml` runs automatically e
 ## Cost
 
 - GitHub Actions: free at this volume
-- Reddit API: free
+- Reddit RSS: free
 - Slack: free
 - Anthropic API: pay-as-you-go, roughly $2–5/month depending on volume, since it uses the cheap Haiku model for relevance judging
 
