@@ -67,6 +67,10 @@ def fetch_candidate_posts(sent_ids):
         url = f"https://www.reddit.com/r/{sub_name}/new/.rss?limit={config.POSTS_PER_SUBREDDIT}"
         try:
             resp = requests.get(url, headers=HEADERS, timeout=20)
+            if resp.status_code == 429:
+                print(f"[warn] rate limited on r/{sub_name}, waiting 10s and retrying once...")
+                time.sleep(10)
+                resp = requests.get(url, headers=HEADERS, timeout=20)
             resp.raise_for_status()
             feed = feedparser.parse(resp.content)
 
@@ -97,6 +101,8 @@ def fetch_candidate_posts(sent_ids):
                 )
         except Exception as e:
             print(f"[warn] failed to fetch r/{sub_name} RSS: {e}")
+
+        time.sleep(3)  # be polite to Reddit's servers, avoid 429 rate limiting
 
     return candidates
 
