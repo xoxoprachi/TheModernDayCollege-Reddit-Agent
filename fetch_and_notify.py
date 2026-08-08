@@ -57,25 +57,40 @@ def strip_html(raw_html):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def extract_subreddit_from_link(link):
+    match = re.search(r"reddit\.com/r/([A-Za-z0-9_]+)/comments/", link)
+    return match.group(1) if match else "unknown"
+
+
+def chunked(seq, size):
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
 def fetch_candidate_posts(sent_ids):
-    """Pull recent posts via each subreddit's public RSS feed (no API key
-    needed), apply age + keyword filter, and skip anything already sent."""
+    """Pull recent posts via batched multi-subreddit RSS requests (no API key
+    needed), apply age + keyword filter, and skip anything already sent.
+    Subreddits are combined with '+' into groups so we make far fewer HTTP
+    requests overall, which avoids Reddit's rate limiting on shared IPs
+    (like GitHub Actions runners)."""
     cutoff = time.time() - (config.MAX_POST_AGE_HOURS * 3600)
     candidates = []
 
-    for sub_name in config.SUBREDDITS:
-        url = f"https://www.reddit.com/r/{sub_name}/new/.rss?limit={config.POSTS_PER_SUBREDDIT}"
+    for group in chunked(config.SUBREDDITS, 5):
+        combined = "+".join(group)
+        url = f"https://www.reddit.com/r/{combined}/new/.rss?limit={config.POSTS_PER_SUBREDDIT * len(group)}"
         try:
             resp = requests.get(url, headers=HEADERS, timeout=20)
             if resp.status_code == 429:
-                print(f"[warn] rate limited on r/{sub_name}, waiting 10s and retrying once...")
-                time.sleep(10)
+                print(f"[warn] rate limited on group {combined}, waiting 15s and retrying once...")
+                time.sleep(15)
                 resp = requests.get(url, headers=HEADERS, timeout=20)
             resp.raise_for_status()
             feed = feedparser.parse(resp.content)
 
             for entry in feed.entries:
-                post_id = extract_post_id(entry.get("id", entry.get("link", "")))
+                link = entry.get("link", "")
+                post_id = extract_post_id(entry.get("id", link))
                 if post_id in sent_ids:
                     continue
 
@@ -93,16 +108,16 @@ def fetch_candidate_posts(sent_ids):
                 candidates.append(
                     {
                         "id": post_id,
-                        "subreddit": sub_name,
+                        "subreddit": extract_subreddit_from_link(link),
                         "title": title,
                         "selftext": selftext,
-                        "url": entry.get("link", ""),
+                        "url": link,
                     }
                 )
         except Exception as e:
-            print(f"[warn] failed to fetch r/{sub_name} RSS: {e}")
+            print(f"[warn] failed to fetch group {combined}: {e}")
 
-        time.sleep(3)  # be polite to Reddit's servers, avoid 429 rate limiting
+        time.sleep(5)  # be polite to Reddit's servers between batches
 
     return candidates
 
@@ -143,6 +158,8 @@ Respond with ONLY a JSON object, no other text, in this exact format:
             },
             timeout=30,
         )
+        if response.status_code != 200:
+            print(f"[warn] Anthropic API returned {response.status_code}: {response.text[:500]}")
         response.raise_for_status()
         data = response.json()
         text = "".join(
@@ -188,7 +205,40 @@ def send_to_slack(threads):
     resp.raise_for_status()
 
 
+def check_anthropic_key():
+    """Quick standalone check so a bad key fails loudly once, with a clear
+    reason, instead of silently failing on every single post."""
+    try:
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": os.environ.get("ANTHROPIC_API_KEY", ""),
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": config.CLAUDE_MODEL,
+                "max_tokens": 10,
+                "messages": [{"role": "user", "content": "Say OK"}],
+            },
+            timeout=30,
+        )
+        if response.status_code == 200:
+            print("[info] Anthropic API key check: OK")
+            return True
+        else:
+            print(f"[ERROR] Anthropic API key check FAILED ({response.status_code}): {response.text[:500]}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Anthropic API key check FAILED: {e}")
+        return False
+
+
 def main():
+    if not check_anthropic_key():
+        print("[ERROR] Stopping early - fix ANTHROPIC_API_KEY before continuing.")
+        return
+
     sent = load_sent_threads()
     sent_ids = set(sent.keys())
 
