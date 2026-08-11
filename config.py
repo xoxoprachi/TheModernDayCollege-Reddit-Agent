@@ -6,17 +6,16 @@ that Claude uses to judge relevance.
 
 # Subreddits to scan every run. Mix of India-focused + global career subs.
 SUBREDDITS = [
-    "developersIndia",
-    "Btechtards",
+    "CAmemes",          # large community of Indian commerce/CA students
+    "DUUnion",          # Delhi University - huge arts/commerce student base
+    "UPSC",             # civil services prep - disproportionately arts/humanities grads
+    "CBSE",             # school students exploring streams/careers, incl. commerce/arts
+    "AskIndia",         # general India Q&A, catches career questions broadly
     "IndianStudents",
     "college",
-    "csMajors",
-    "cscareerquestions",
-    "ITCareerQuestions",
     "internships",
     "jobs",
     "careerguidance",
-    "EngineeringStudents",
     "GetStudying",
     "freelance",
     "Entrepreneur",
@@ -45,6 +44,15 @@ KEYWORD_PREFILTER = [
     "falling behind", "don't know where to start", "no direction",
     "how to get started", "start my own", "startup idea",
     "interview prep", "interview tips", "ats resume",
+    # arts/commerce/humanities specific
+    "b.com", "bcom", "bba", "bms", "ba hons", "ba student",
+    "commerce student", "arts student", "humanities student",
+    "ca foundation", "ca inter", "ca articleship", "company secretary",
+    "cs executive", "cma", "du student", "delhi university",
+    "law student", "journalism student", "mass comm", "psychology student",
+    "economics student", "non-tech job", "non tech career",
+    "career after ba", "career after bcom", "what to do after ba",
+    "what to do after bcom",
 ]
 
 # How many threads to send to Slack per run, at most.
@@ -73,10 +81,21 @@ self-driven income and career-building through:
 - A mindset/discipline track: focus, avoiding FOMO/scroll-doom-loops,
   confidence, and resilience after setbacks
 
-WHO IT'S FOR: college students (any year, any branch) who feel stuck, behind,
-or directionless, and are ready to put in effort to earn/build a career on
-their own terms rather than wait for campus placements or a "system" to help
-them.
+WHO IT'S FOR: college students (any year), with a PRIMARY focus on arts,
+humanities, and commerce students in India (e.g. BA, B.Com, BBA, BMS, CA/CS/CMA
+aspirants, law, journalism/mass comm, psychology, economics) who feel stuck,
+behind, or directionless, and are ready to put in effort to earn/build a
+career on their own terms rather than wait for campus placements or a
+"system" to help them.
+
+IMPORTANT AUDIENCE NUANCE: Prioritize threads from arts/commerce/humanities
+students over ones from BTech/engineering/pure-CS students. A thread from a
+CS/engineering student asking about internships or coding jobs is a weaker
+fit (they already have well-trodden paths - Internshala, LeetCode, campus
+placements, tech-specific communities) - only flag those if there's nothing
+better among today's candidates. A thread from a BA/B.Com/BBA/humanities
+student asking the same kind of question is a much stronger fit, since this
+is exactly the underserved group Modern Day College exists for.
 
 We are looking for Reddit threads (usually from students, sometimes recent
 grads) that show a real, specific need matching ANY of the above - for
