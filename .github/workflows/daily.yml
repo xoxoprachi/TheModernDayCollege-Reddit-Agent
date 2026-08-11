@@ -2,8 +2,10 @@ name: Daily Reddit Digest
 
 on:
   schedule:
-    # 08:00 IST = 02:30 UTC. Edit the cron below to change the time.
-    - cron: "30 2 * * *"
+    # 05:30 IST = 00:00 UTC. Scheduled early with buffer since GitHub Actions
+    # doesn't guarantee exact timing on cron runs (can be delayed on the free
+    # tier). This buffer aims for delivery comfortably before 9 AM IST.
+    - cron: "0 0 * * *"
   workflow_dispatch: {}  # lets you manually trigger a run from the Actions tab
 
 permissions:
